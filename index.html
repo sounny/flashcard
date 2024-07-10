@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chemistry Flashcards</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #ff6f61, #d74177);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            perspective: 1000px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .flashcard {
+            width: 300px;
+            height: 200px;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .flashcard.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard .front, .flashcard .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            border-radius: 15px;
+        }
+
+        .flashcard .front {
+            background: #ff6f61;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .flashcard .back {
+            background: #d74177;
+            color: white;
+            transform: rotateY(180deg);
+            text-align: center;
+            font-size: 18px;
+            padding: 10px;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            width: 300px;
+        }
+
+        .navigation button {
+            background: #ff6f61;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s, transform 0.3s;
+        }
+
+        .navigation button:hover {
+            background: #d7574d;
+            transform: translateY(-2px);
+        }
+
+        .navigation button:active {
+            transform: translateY(1px);
+        }
+
+        .edit-btn {
+            background: #ffffff;
+            color: #ff6f61;
+            border: 2px solid #ff6f61;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background 0.3s, transform 0.3s;
+        }
+
+        .edit-btn:hover {
+            background: #ff6f61;
+            color: white;
+        }
+
+        .edit-btn:active {
+            transform: translateY(1px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .textarea-container {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+        }
+
+        .textarea-container label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .modal button {
+            background: #ff6f61;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s, transform 0.3s;
+        }
+
+        .modal button:hover {
+            background: #d7574d;
+            transform: translateY(-2px);
+        }
+
+        .modal button:active {
+            transform: translateY(1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="flashcard" id="flashcard">
+            <div class="front" id="front">
+                Chemistry Topic 1
+            </div>
+            <div class="back" id="back">
+                Information about Chemistry Topic 1
+            </div>
+        </div>
+        <div class="navigation">
+            <button id="prevBtn">Previous</button>
+            <button id="nextBtn">Next</button>
+        </div>
+        <button class="edit-btn" id="editBtn">Edit Flashcards</button>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeBtn">&times;</span>
+            <div class="textarea-container">
+                <label for="csvTextarea">CSV Format (front,back):</label>
+                <textarea id="csvTextarea"></textarea>
+            </div>
+            <div class="textarea-container">
+                <label for="columnTextarea">Column Format (front: back):</label>
+                <textarea id="columnTextarea"></textarea>
+            </div>
+            <button id="saveBtn">Save</button>
+        </div>
+    </div>
+
+    <script>
+        const topics = [
+            { front: "Atomic Structure", back: "Atoms consist of a nucleus containing protons and neutrons, surrounded by electrons in shells." },
+            { front: "Periodic Table", back: "A table of the chemical elements arranged in order of atomic number." },
+            { front: "Chemical Bonding", back: "Atoms combine by sharing or transferring electrons to achieve stability." },
+            { front: "Mole Concept", back: "A mole is a unit that measures the amount of substance, containing Avogadro's number of particles." },
+            { front: "Acids and Bases", back: "Acids donate protons (H+), while bases accept protons." },
+            { front: "pH Scale", back: "A scale that measures the acidity or basicity of a solution, ranging from 0 to 14." },
+            { front: "Chemical Reactions", back: "Processes in which substances are transformed into new substances with different properties." },
+            { front: "Stoichiometry", back: "The calculation of reactants and products in chemical reactions." },
+            { front: "Thermochemistry", back: "The study of energy changes that accompany chemical reactions and phase changes." },
+            { front: "Kinetics", back: "The study of the rates of chemical reactions and the factors that affect them." },
+            { front: "Equilibrium", back: "The state in which the rates of the forward and reverse reactions are equal." },
+            { front: "Electrochemistry", back: "The study of chemical processes that involve the movement of electrons." },
+            { front: "Organic Chemistry", back: "The study of carbon-containing compounds and their properties." },
+            { front: "Polymers", back: "Large molecules composed of repeating structural units (monomers)." },
+            { front: "Inorganic Chemistry", back: "The study of inorganic compounds, typically those that do not contain carbon-hydrogen bonds." },
+            { front: "Biochemistry", back: "The study of chemical processes within and relating to living organisms." },
+            { front: "Analytical Chemistry", back: "The study of the composition of matter and the development of tools to measure properties of substances." },
+            { front: "Environmental Chemistry", back: "The study of chemical processes occurring in the environment and their effects." },
+            { front: "Nuclear Chemistry", back: "The study of the changes in atomic nuclei and the energy released in nuclear reactions." },
+            { front: "Green Chemistry", back: "The design of chemical products and processes that reduce or eliminate hazardous substances." }
+        ];
+
+        let currentIndex = 0;
+
+        const flashcard = document.getElementById('flashcard');
+        const front = document.getElementById('front');
+        const back = document.getElementById('back');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const editBtn = document.getElementById('editBtn');
+        const editModal = document.getElementById('editModal');
+        const closeBtn = document.getElementById('closeBtn');
+        const csvTextarea = document.getElementById('csvTextarea');
+        const columnTextarea = document.getElementById('columnTextarea');
+        const saveBtn = document.getElementById('saveBtn');
+
+        function updateFlashcard(index) {
+            front.textContent = topics[index].front;
+            back.textContent = topics[index].back;
+        }
+
+        flashcard.addEventListener('click', () => {
+            flashcard.classList.toggle('is-flipped');
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateFlashcard(currentIndex);
+                if (flashcard.classList.contains('is-flipped')) {
+                    flashcard.classList.remove('is-flipped');
+                }
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentIndex < topics.length - 1) {
+                currentIndex++;
+                updateFlashcard(currentIndex);
+                if (flashcard.classList.contains('is-flipped')) {
+                    flashcard.classList.remove('is-flipped');
+                }
+            }
+        });
+
+        editBtn.addEventListener('click', () => {
+            editModal.style.display = "block";
+            csvTextarea.value = topics.map(topic => `${topic.front},${topic.back}`).join('\n');
+            columnTextarea.value = topics.map(topic => `${topic.front}: ${topic.back}`).join('\n');
+        });
+
+        closeBtn.addEventListener('click', () => {
+            editModal.style.display = "none";
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target == editModal) {
+                editModal.style.display = "none";
+            }
+        });
+
+        saveBtn.addEventListener('click', () => {
+            const csvData = csvTextarea.value.trim().split('\n').map(line => line.split(','));
+            const columnData = columnTextarea.value.trim().split('\n').map(line => line.split(': '));
+
+            topics.length = 0; // Clear the array
+
+            if (csvData[0].length === 2) {
+                csvData.forEach(line => {
+                    topics.push({ front: line[0], back: line[1] });
+                });
+            } else if (columnData[0].length === 2) {
+                columnData.forEach(line => {
+                    topics.push({ front: line[0], back: line[1] });
+                });
+            }
+
+            currentIndex = 0;
+            updateFlashcard(currentIndex);
+            editModal.style.display = "none";
+        });
+
+        updateFlashcard(currentIndex);
+    </script>
+</body>
+</html>
